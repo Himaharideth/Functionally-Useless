@@ -1,1 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BRAIN ACTIVITY DETECTOR</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 20% 20%, #102040 0%, transparent 30%),
+        radial-gradient(circle at 80% 80%, #1b0d3a 0%, transparent 30%),
+        #05070d;
+    color: #e8faff;
+    font-family: "Courier New", monospace;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+
+    background-image:
+        linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+
+    background-size: 40px 40px;
+    pointer-events: none;
+}
+
+.container {
+    width: 92%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 35px 0 60px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logo {
+    font-size: clamp(38px, 7vw, 70px);
+    font-weight: bold;
+    color: #00ffff;
+
+    text-shadow:
+        0 0 10px #00ffff,
+        0 0 25px #00ffff,
+        0 0 50px #0077ff;
+}
+
+.subtitle {
+    margin-top: 8px;
+    color: #8fa8b8;
+    letter-spacing: 4px;
+    font-size: 13px;
+}
+
+.status {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 7px 16px;
+
+    border: 1px solid #00ff9d;
+    color: #00ff9d;
+
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 25px;
+}
+
+.panel {
+    background: rgba(8,15,27,0.9);
+
+    border: 1px solid rgba(0,255,255,0.25);
+    border-radius: 15px;
+
+    padding: 22px;
+
+    box-shadow:
+        0 0 25px rgba(0,255,255,0.05),
+        inset 0 0 30px rgba(0,255,255,0.02);
+}
+
+.panel-title {
+    color: #00ffff;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+}
+
+.camera-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+
+    background: #020409;
+    border: 1px solid #164f61;
+    border-radius: 12px;
+
+    overflow: hidden;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+
+    transform: scaleX(-1);
+}
+
+canvas {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    transform: scaleX(-1);
+    pointer-events: none;
+}
+
+.scanner-line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+
+    background: #00ffff;
+
+    box-shadow: 0 0 15px #00ffff;
+
+    animation: scan 2.5s linear infinite;
+    opacity: 0.7;
+
+    pointer-events: none;
+}
+
+@keyframes scan {
+
+    0% {
+        top: 0;
+    }
+
+    50% {
+        top: 100%;
+    }
+
+    100% {
+        top: 0;
+    }
+
+}
+
+.face-status {
+    position: absolute;
+
+    bottom: 12px;
+    left: 12px;
+
+    background: rgba(0,0,0,0.85);
+
+    padding: 9px 13px;
+    border-radius: 5px;
+
+    color: #ffcc00;
+
+    font-size: 12px;
+    z-index: 10;
+}
+
+.face-status.detected {
+    color: #00ff9d;
+}
+
+.preview-countdown {
+    position: absolute;
+
+    top: 18px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    background: rgba(0,0,0,0.82);
+
+    border: 1px solid #00ffff;
+
+    padding: 9px 18px;
+
+    border-radius: 20px;
+
+    color: #00ffff;
+
+    font-size: 13px;
+    letter-spacing: 1px;
+
+    z-index: 10;
+
+    display: none;
+
+    box-shadow:
+        0 0 15px rgba(0,255,255,0.25);
+}
+
+.preview-countdown.active {
+    display: block;
+}
+
+.corner {
+    position: absolute;
+
+    width: 30px;
+    height: 30px;
+
+    border-color: #00ffff;
+    border-style: solid;
+
+    z-index: 5;
+}
+
+.tl {
+    top: 10px;
+    left: 10px;
+
+    border-width: 2px 0 0 2px;
+}
+
+.tr {
+    top: 10px;
+    right: 10px;
+
+    border-width: 2px 2px 0 0;
+}
+
+.bl {
+    bottom: 10px;
+    left: 10px;
+
+    border-width: 0 0 2px 2px;
+}
+
+.br {
+    bottom: 10px;
+    right: 10px;
+
+    border-width: 0 2px 2px 0;
+}
+
+.start-btn {
+    width: 100%;
+
+    margin-top: 18px;
+
+    padding: 15px;
+
+    border: 1px solid #00ffff;
+
+    background: rgba(0,255,255,0.07);
+
+    color: #00ffff;
+
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: bold;
+
+    letter-spacing: 2px;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition: 0.25s;
+}
+
+.start-btn:hover {
+    background: #00ffff;
+    color: #05070d;
+
+    box-shadow:
+        0 0 25px rgba(0,255,255,0.5);
+}
+
+.start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.results {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 12px;
+}
+
+.metric {
+    background: rgba(0,255,255,0.025);
+
+    border: 1px solid rgba(0,255,255,0.13);
+
+    padding: 15px;
+
+    border-radius: 9px;
+}
+
+.metric-name {
+    color: #8299a8;
+
+    font-size: 11px;
+
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    font-size: 25px;
+
+    color: #00ffff;
+
+    font-weight: bold;
+}
+
+.bar {
+    width: 100%;
+
+    height: 4px;
+
+    background: #101a22;
+
+    margin-top: 9px;
+
+    border-radius: 5px;
+
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+
+    width: 0%;
+
+    background: #00ffff;
+
+    box-shadow: 0 0 8px #00ffff;
+
+    transition: width 1s ease;
+}
+
+.diagnosis {
+    grid-column: span 2;
+
+    text-align: center;
+
+    padding: 20px;
+
+    border: 1px solid rgba(255,0,255,0.3);
+
+    border-radius: 10px;
+
+    background: rgba(255,0,255,0.04);
+}
+
+.diagnosis-label {
+    color: #8f8498;
+
+    font-size: 11px;
+
+    letter-spacing: 2px;
+}
+
+.diagnosis-text {
+    margin-top: 10px;
+
+    font-size: 21px;
+
+    color: #ff66ff;
+
+    text-shadow:
+        0 0 15px rgba(255,0,255,0.5);
+}
+
+.extra-grid {
+    margin-top: 25px;
+
+    display: grid;
+
+    grid-template-columns: repeat(3,1fr);
+
+    gap: 15px;
+}
+
+.extra-card {
+    padding: 18px;
+
+    text-align: center;
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    background:
+        rgba(255,255,255,0.02);
+
+    border-radius: 10px;
+}
+
+.extra-card small {
+    color: #6f7d87;
+}
+
+.extra-card strong {
+    display: block;
+
+    margin-top: 8px;
+
+    font-size: 22px;
+
+    color: #fff;
+}
+
+.terminal {
+    margin-top: 25px;
+
+    background: #020305;
+
+    border: 1px solid #15232d;
+
+    padding: 18px;
+
+    border-radius: 10px;
+
+    color: #55ff99;
+
+    font-size: 12px;
+
+    line-height: 1.8;
+
+    min-height: 110px;
+}
+
+.terminal-title {
+    color: #657985;
+
+    margin-bottom: 5px;
+}
+
+.disclaimer {
+    text-align: center;
+
+    color: #59666e;
+
+    font-size: 10px;
+
+    margin-top: 20px;
+}
+
+
+/* =========================
+   LOADING SCREEN
+========================= */
+
+.loading-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    background:
+        rgba(2,4,9,0.97);
+
+    z-index: 9999;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    transition: opacity 0.4s ease;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+
+    pointer-events: none;
+
+    visibility: hidden;
+}
+
+.loading-box {
+    width: min(600px,95%);
+
+    text-align: center;
+}
+
+.brain-icon {
+    font-size: 75px;
+
+    animation:
+        brainPulse 1s infinite alternate;
+}
+
+@keyframes brainPulse {
+
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.08);
+    }
+
+}
+
+.loading-title {
+    color: #00ffff;
+
+    font-size: 24px;
+
+    margin: 15px 0;
+
+    letter-spacing: 3px;
+}
+
+.loading-message {
+    height: 25px;
+
+    color: #91a8b5;
+
+    font-size: 13px;
+}
+
+.progress-container {
+    margin-top: 25px;
+
+    width: 100%;
+
+    height: 12px;
+
+    border: 1px solid #1d5968;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    background: #071017;
+}
+
+.progress-bar {
+    width: 0%;
+
+    height: 100%;
+
+    background: #00ffff;
+
+    box-shadow:
+        0 0 20px #00ffff;
+}
+
+.progress-percent {
+    margin-top: 10px;
+
+    color: #00ffff;
+
+    font-size: 18px;
+}
+
+
+@media(max-width:800px) {
+
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .extra-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media(max-width:500px) {
+
+    .results {
+        grid-template-columns: 1fr;
+    }
+
+    .diagnosis {
+        grid-column: span 1;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<!-- =========================
+     LOADING SCREEN
+========================= -->
+
+<div
+    class="loading-overlay hidden"
+    id="loadingOverlay">
+
+    <div class="loading-box">
+
+        <div class="brain-icon">
+            🧠
+        </div>
+
+        <div class="loading-title">
+            BRAIN ACTIVITY DETECTOR
+        </div>
+
+        <div
+            class="loading-message"
+            id="loadingMessage">
+
+            Initializing neural scanner...
+
+        </div>
+
+        <div class="progress-container">
+
+            <div
+                class="progress-bar"
+                id="progressBar">
+            </div>
+
+        </div>
+
+        <div
+            class="progress-percent"
+            id="progressPercent">
+
+            0%
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="container">
+
+
+<header>
+
+    <div class="logo">
+        🧠 BRAIN ACTIVITY DETECTOR
+    </div>
+
+    <div class="subtitle">
+        HUMAN INTELLIGENCE DIAGNOSTIC SYSTEM
+    </div>
+
+    <div class="status">
+        ● SYSTEM ONLINE
+    </div>
+
+</header>
+
+
+<div class="main-grid">
+
+
+<!-- =========================
+     CAMERA
+========================= -->
+
+<div class="panel">
+
+    <div class="panel-title">
+        // VISUAL NEURAL SCANNER
+    </div>
+
+    <div class="camera-box">
+
+        <video
+            id="video"
+            autoplay
+            playsinline>
+        </video>
+
+        <canvas
+            id="canvas">
+        </canvas>
+
+        <div class="scanner-line"></div>
+
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+
+
+        <div
+            class="preview-countdown"
+            id="previewCountdown">
+
+            FACE CALIBRATION:
+
+            <span id="countdownNumber">
+                6
+            </span>
+
+            s
+
+        </div>
+
+
+        <div
+            class="face-status"
+            id="faceStatus">
+
+            ● SEARCHING FOR FACE...
+
+        </div>
+
+    </div>
+
+
+    <button
+        class="start-btn"
+        id="startBtn">
+
+        INITIALIZE BRAIN ACTIVITY DETECTOR
+
+    </button>
+
+</div>
+
+
+<!-- =========================
+     RESULTS
+========================= -->
+
+<div class="panel">
+
+    <div class="panel-title">
+        // NEURAL ANALYSIS
+    </div>
+
+
+    <div class="results">
+
+
+        <div class="metric">
+
+            <div class="metric-name">
+                BRAIN ACTIVITY
+            </div>
+
+            <div
+                class="metric-value"
+                id="brainValue">
+
+                --%
+
+            </div>
+
+            <div class="bar">
+
+                <div
+                    class="bar-fill"
+                    id="brainBar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-name">
+                FOCUS LEVEL
+            </div>
+
+            <div
+                class="metric-value"
+                id="focusValue">
+
+                --%
+
+            </div>
+
+            <div class="bar">
+
+                <div
+                    class="bar-fill"
+                    id="focusBar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-name">
+                OVERTHINKING
+            </div>
+
+            <div
+                class="metric-value"
+                id="overthinkingValue">
+
+                --%
+
+            </div>
+
+            <div class="bar">
+
+                <div
+                    class="bar-fill"
+                    id="overthinkingBar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-name">
+                SLEEPINESS
+            </div>
+
+            <div
+                class="metric-value"
+                id="sleepinessValue">
+
+                --%
+
+            </div>
+
+            <div class="bar">
+
+                <div
+                    class="bar-fill"
+                    id="sleepinessBar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-name">
+                EYE ACTIVITY
+            </div>
+
+            <div
+                class="metric-value"
+                id="eyeValue">
+
+                --%
+
+            </div>
+
+            <div class="bar">
+
+                <div
+                    class="bar-fill"
+                    id="eyeBar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric">
+
+            <div class="metric-name">
+                MENTAL ENERGY
+            </div>
+
+            <div
+                class="metric-value"
+                id="energyValue">
+
+                --%
+
+            </div>
+
+            <div class="bar">
+
+                <div
+                    class="bar-fill"
+                    id="energyBar">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="diagnosis">
+
+            <div class="diagnosis-label">
+                FINAL DIAGNOSIS
+            </div>
+
+            <div
+                class="diagnosis-text"
+                id="diagnosis">
+
+                WAITING FOR SCAN...
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+</div>
+
+
+<!-- =========================
+     EXTRA STATS
+========================= -->
+
+<div class="extra-grid">
+
+
+    <div class="extra-card">
+
+        <small>
+            FACE CONFIDENCE
+        </small>
+
+        <strong id="confidence">
+            --%
+        </strong>
+
+    </div>
+
+
+    <div class="extra-card">
+
+        <small>
+            USELESSNESS
+        </small>
+
+        <strong>
+            97%
+        </strong>
+
+    </div>
+
+
+    <div class="extra-card">
+
+        <small>
+            THOUGHTS DETECTED
+        </small>
+
+        <strong>
+            ∞
+        </strong>
+
+    </div>
+
+
+</div>
+
+
+<!-- =========================
+     TERMINAL
+========================= -->
+
+<div class="terminal">
+
+    <div class="terminal-title">
+        BRAIN ACTIVITY DETECTOR TERMINAL
+    </div>
+
+    <div id="terminalText">
+
+        > System ready.<br>
+        > Waiting for user...
+
+    </div>
+
+</div>
+
+
+<div class="disclaimer">
+
+    ⚠ FOR ENTERTAINMENT PURPOSES ONLY —
+    This system does NOT actually measure brain activity.
+
+</div>
+
+
+</div>
+
+
+<script>
+
+
+/* =========================
+   ELEMENTS
+========================= */
+
+const video =
+    document.getElementById("video");
+
+const canvas =
+    document.getElementById("canvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+const startBtn =
+    document.getElementById("startBtn");
+
+const faceStatus =
+    document.getElementById("faceStatus");
+
+const previewCountdown =
+    document.getElementById("previewCountdown");
+
+const countdownNumber =
+    document.getElementById("countdownNumber");
+
+const loadingOverlay =
+    document.getElementById("loadingOverlay");
+
+const progressBar =
+    document.getElementById("progressBar");
+
+const progressPercent =
+    document.getElementById("progressPercent");
+
+const loadingMessage =
+    document.getElementById("loadingMessage");
+
+const terminalText =
+    document.getElementById("terminalText");
+
+
+/* =========================
+   VARIABLES
+========================= */
+
+let detector = null;
+
+let faceDetected = false;
+
+let detectionCount = 0;
+
+let scanStarted = false;
+
+let scanning = false;
+
+let cameraStarted = false;
+
+let previewTimer = null;
+
+let scanTimer = null;
+
+let lastBox = null;
+
+
+/* =========================
+   CAMERA
+========================= */
+
+async function startCamera() {
+
+    try {
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video: {
+
+                    width: {
+                        ideal: 640
+                    },
+
+                    height: {
+                        ideal: 480
+                    },
+
+                    facingMode: "user"
+
+                },
+
+                audio: false
+
+            });
+
+
+        video.srcObject = stream;
+
+
+        await new Promise(resolve => {
+
+            video.onloadedmetadata =
+                resolve;
+
+        });
+
+
+        await video.play();
+
+
+        canvas.width =
+            video.videoWidth || 640;
+
+        canvas.height =
+            video.videoHeight || 480;
+
+
+        cameraStarted = true;
+
+
+        terminalText.innerHTML +=
+            "<br>> Camera access granted." +
+            "<br>> Camera feed initialized.";
+
+
+        startBtn.textContent =
+            "CAMERA ACTIVE — LOOK AT THE SCREEN";
+
+
+        initializeDetector();
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Camera could not be started. Please allow camera permission and use VS Code Live Server."
+        );
+
+        startBtn.disabled = false;
+
+    }
+
+}
+
+
+/* =========================
+   FACE DETECTOR
+========================= */
+
+function initializeDetector() {
+
+    if (
+        typeof FaceDetection ===
+        "undefined"
+    ) {
+
+        terminalText.innerHTML +=
+            "<br>> ERROR: FaceDetection library not loaded.";
+
+        return;
+
+    }
+
+
+    detector = new FaceDetection({
+
+        locateFile: function(file) {
+
+            return "https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/" + file;
+
+        }
+
+    });
+
+
+    detector.setOptions({
+
+        model: "short",
+
+        minDetectionConfidence: 0.3
+
+    });
+
+
+    detector.onResults(onResults);
+
+
+    terminalText.innerHTML +=
+        "<br>> Face detection module loaded." +
+        "<br>> Searching for face...";
+
+
+    detectFace();
+
+}
+
+
+/* =========================
+   DETECTION LOOP
+========================= */
+
+async function detectFace() {
+
+    if (!detector) {
+
+        return;
+
+    }
+
+
+    if (
+        video.readyState >= 2 &&
+        video.videoWidth > 0
+    ) {
+
+        try {
+
+            await detector.send({
+
+                image: video
+
+            });
+
+        }
+
+        catch(error) {
+
+            console.error(
+                "Face detection error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        detectFace
+    );
+
+}
+
+
+/* =========================
+   FACE RESULT
+========================= */
+
+function onResults(results) {
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    if (
+        results.detections &&
+        results.detections.length > 0
+    ) {
+
+        const detection =
+            results.detections[0];
+
+
+        faceDetected = true;
+
+        detectionCount++;
+
+
+        const box =
+            detection.boundingBox;
+
+
+        const x =
+            box.xCenter *
+            canvas.width
+            -
+            (box.width *
+            canvas.width) / 2;
+
+
+        const y =
+            box.yCenter *
+            canvas.height
+            -
+            (box.height *
+            canvas.height) / 2;
+
+
+        const w =
+            box.width *
+            canvas.width;
+
+
+        const h =
+            box.height *
+            canvas.height;
+
+
+        if (!lastBox) {
+
+            lastBox = {
+
+                x: x,
+                y: y,
+                w: w,
+                h: h
+
+            };
+
+        }
+
+        else {
+
+            lastBox.x =
+                lastBox.x * 0.75 +
+                x * 0.25;
+
+            lastBox.y =
+                lastBox.y * 0.75 +
+                y * 0.25;
+
+            lastBox.w =
+                lastBox.w * 0.75 +
+                w * 0.25;
+
+            lastBox.h =
+                lastBox.h * 0.75 +
+                h * 0.25;
+
+        }
+
+
+        ctx.strokeStyle =
+            "#00ffff";
+
+        ctx.lineWidth = 3;
+
+        ctx.shadowColor =
+            "#00ffff";
+
+        ctx.shadowBlur = 15;
+
+
+        ctx.strokeRect(
+
+            lastBox.x,
+            lastBox.y,
+            lastBox.w,
+            lastBox.h
+
+        );
+
+
+        ctx.shadowBlur = 0;
+
+
+        if (!scanning) {
+
+            faceStatus.textContent =
+                "● FACE DETECTED";
+
+            faceStatus.classList.add(
+                "detected"
+            );
+
+        }
+
+
+        let score = 0;
+
+
+        if (
+            Array.isArray(
+                detection.score
+            )
+        ) {
+
+            score =
+                detection.score[0] || 0;
+
+        }
+
+        else {
+
+            score =
+                detection.score || 0;
+
+        }
+
+
+        document.getElementById(
+            "confidence"
+        ).textContent =
+
+            Math.round(
+                score * 100
+            ) + "%";
+
+
+        /*
+           START 6 SECOND
+           CAMERA OBSERVATION
+        */
+
+        if (
+
+            detectionCount >= 5 &&
+            !scanStarted &&
+            !scanning
+
+        ) {
+
+            startFacePreview();
+
+        }
+
+    }
+
+    else {
+
+        faceDetected = false;
+
+
+        if (!scanning) {
+
+            faceStatus.textContent =
+                "● SEARCHING FOR FACE...";
+
+            faceStatus.classList.remove(
+                "detected"
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   6 SECOND FACE PREVIEW
+========================= */
+
+function startFacePreview() {
+
+    if (
+        scanStarted ||
+        scanning
+    ) {
+
+        return;
+
+    }
+
+
+    scanStarted = true;
+
+
+    let remaining = 6;
+
+
+    previewCountdown.classList.add(
+        "active"
+    );
+
+
+    countdownNumber.textContent =
+        remaining;
+
+
+    faceStatus.textContent =
+        "● FACE LOCKED — PREPARING";
+
+
+    terminalText.innerHTML +=
+        "<br>> Face detected." +
+        "<br>> 6 second calibration started.";
+
+
+    previewTimer =
+        setInterval(() => {
+
+
+            if (faceDetected) {
+
+                countdownNumber.textContent =
+                    remaining;
+
+
+                faceStatus.textContent =
+                    "● FACE LOCKED — SCAN IN "
+                    + remaining
+                    + "s";
+
+            }
+
+            else {
+
+                faceStatus.textContent =
+                    "● FACE LOST — REACQUIRING...";
+
+            }
+
+
+            remaining--;
+
+
+            if (remaining < 0) {
+
+                clearInterval(
+                    previewTimer
+                );
+
+
+                previewCountdown.classList.remove(
+                    "active"
+                );
+
+
+                if (faceDetected) {
+
+                    faceStatus.textContent =
+                        "● SCANNING FACE...";
+
+                    startBrainScan();
+
+                }
+
+                else {
+
+                    scanStarted = false;
+
+                    faceStatus.textContent =
+                        "● SEARCHING FOR FACE...";
+
+                }
+
+            }
+
+        }, 1000);
+
+}
+
+
+/* =========================
+   6 SECOND BRAIN SCAN
+========================= */
+
+function startBrainScan() {
+
+    if (scanning) {
+
+        return;
+
+    }
+
+
+    scanning = true;
+
+
+    loadingOverlay.classList.remove(
+        "hidden"
+    );
+
+
+    progressBar.style.width =
+        "0%";
+
+
+    progressPercent.textContent =
+        "0%";
+
+
+    const messages = [
+
+        "Initializing neural scanner...",
+
+        "Scanning facial patterns...",
+
+        "Analyzing forehead geometry...",
+
+        "Counting thoughts...",
+
+        "Detecting unnecessary thinking...",
+
+        "Measuring overthinking levels...",
+
+        "Searching for common sense...",
+
+        "Calculating intelligence...",
+
+        "Consulting absolutely nobody...",
+
+        "Finalizing results..."
+
+    ];
+
+
+    const startTime =
+        Date.now();
+
+
+    let messageIndex = -1;
+
+
+    scanTimer =
+        setInterval(() => {
+
+
+            const elapsed =
+                Date.now() -
+                startTime;
+
+
+            let progress =
+                (elapsed / 6000) * 100;
+
+
+            if (progress > 100) {
+
+                progress = 100;
+
+            }
+
+
+            progressBar.style.width =
+                progress + "%";
+
+
+            progressPercent.textContent =
+                Math.floor(progress) + "%";
+
+
+            const newIndex =
+                Math.min(
+
+                    Math.floor(
+                        progress / 10
+                    ),
+
+                    messages.length - 1
+
+                );
+
+
+            if (
+                newIndex !==
+                messageIndex
+            ) {
+
+                messageIndex =
+                    newIndex;
+
+
+                loadingMessage.textContent =
+                    messages[messageIndex];
+
+            }
+
+
+            if (elapsed >= 6000) {
+
+                clearInterval(
+                    scanTimer
+                );
+
+
+                progressBar.style.width =
+                    "100%";
+
+
+                progressPercent.textContent =
+                    "100%";
+
+
+                loadingMessage.textContent =
+                    "BRAIN DETECTION COMPLETE ✓";
+
+
+                setTimeout(() => {
+
+
+                    loadingOverlay.classList.add(
+                        "hidden"
+                    );
+
+
+                    generateResults();
+
+
+                    scanning = false;
+
+
+                    faceStatus.textContent =
+                        "● ANALYSIS COMPLETE";
+
+
+                    startBtn.disabled =
+                        false;
+
+
+                    startBtn.textContent =
+                        "🔄 DETECT AGAIN";
+
+
+                }, 600);
+
+            }
+
+        }, 50);
+
+}
+
+
+/* =========================
+   GENERATE RESULTS
+========================= */
+
+function generateResults() {
+
+
+    const brain =
+        randomBetween(60,88);
+
+
+    const focus =
+        randomBetween(60,92);
+
+
+    const overthinking =
+        randomBetween(30,85);
+
+
+    const sleepiness =
+        randomBetween(15,55);
+
+
+    const eye =
+        randomBetween(45,88);
+
+
+    const energy =
+        Math.round(
+            (brain + focus) / 2
+        );
+
+
+    setMetric(
+        "brainValue",
+        "brainBar",
+        brain
+    );
+
+
+    setMetric(
+        "focusValue",
+        "focusBar",
+        focus
+    );
+
+
+    setMetric(
+        "overthinkingValue",
+        "overthinkingBar",
+        overthinking
+    );
+
+
+    setMetric(
+        "sleepinessValue",
+        "sleepinessBar",
+        sleepiness
+    );
+
+
+    setMetric(
+        "eyeValue",
+        "eyeBar",
+        eye
+    );
+
+
+    setMetric(
+        "energyValue",
+        "energyBar",
+        energy
+    );
+
+
+    let diagnosis;
+
+
+    if (sleepiness > 65) {
+
+        diagnosis =
+            "😴 POTATO MODE ACTIVATED";
+
+    }
+
+    else if (
+        overthinking > 75
+    ) {
+
+        diagnosis =
+            "🤯 PROFESSIONAL OVERTHINKER";
+
+    }
+
+    else if (
+        focus > 88
+    ) {
+
+        diagnosis =
+            "🎯 SUSPICIOUSLY FOCUSED";
+
+    }
+
+    else if (
+        energy > 85
+    ) {
+
+        diagnosis =
+            "⚡ BRAIN ACTIVITY OVERCLOCKED";
+
+    }
+
+    else if (
+        brain > 84
+    ) {
+
+        diagnosis =
+            "🧠 GALAXY BRAIN DETECTED";
+
+    }
+
+    else if (
+        focus < 50
+    ) {
+
+        diagnosis =
+            "🫠 BRAIN ACTIVITY HAS LEFT THE CHAT";
+
+    }
+
+    else {
+
+        diagnosis =
+            "🙂 AVERAGE HUMAN DETECTED";
+
+    }
+
+
+    document.getElementById(
+        "diagnosis"
+    ).textContent =
+        diagnosis;
+
+
+    terminalText.innerHTML =
+
+        "> Face observation complete." +
+
+        "<br>> Facial pattern analyzed." +
+
+        "<br>> Neural activity estimated." +
+
+        "<br>> Brain activity successfully detected." +
+
+        "<br>> Intelligence successfully guessed." +
+
+        "<br>> Accuracy: absolutely questionable." +
+
+        "<br>> System status: USELESS BUT WORKING.";
+
+}
+
+
+/* =========================
+   RANDOM NUMBER
+========================= */
+
+function randomBetween(
+    min,
+    max
+) {
+
+    return Math.floor(
+
+        Math.random() *
+        (max - min + 1)
+
+    ) + min;
+
+}
+
+
+/* =========================
+   SET METRIC
+========================= */
+
+function setMetric(
+    valueId,
+    barId,
+    value
+) {
+
+    document.getElementById(
+        valueId
+    ).textContent =
+        value + "%";
+
+
+    document.getElementById(
+        barId
+    ).style.width =
+        value + "%";
+
+}
+
+
+/* =========================
+   START / DETECT AGAIN
+========================= */
+
+startBtn.addEventListener(
+
+    "click",
+
+    async function() {
+
+
+        /*
+           FIRST TIME:
+           START CAMERA
+        */
+
+        if (!cameraStarted) {
+
+            startBtn.disabled =
+                true;
+
+
+            startBtn.textContent =
+                "STARTING CAMERA...";
+
+
+            await startCamera();
+
+            return;
+
+        }
+
+
+        /*
+           DETECT AGAIN:
+           RESET EVERYTHING
+        */
+
+        if (!scanning) {
+
+
+            detectionCount = 0;
+
+            scanStarted = false;
+
+            faceDetected = false;
+
+            lastBox = null;
+
+
+            /* RESET RESULTS */
+
+            document.getElementById(
+                "brainValue"
+            ).textContent =
+                "--%";
+
+
+            document.getElementById(
+                "focusValue"
+            ).textContent =
+                "--%";
+
+
+            document.getElementById(
+                "overthinkingValue"
+            ).textContent =
+                "--%";
+
+
+            document.getElementById(
+                "sleepinessValue"
+            ).textContent =
+                "--%";
+
+
+            document.getElementById(
+                "eyeValue"
+            ).textContent =
+                "--%";
+
+
+            document.getElementById(
+                "energyValue"
+            ).textContent =
+                "--%";
+
+
+            document.getElementById(
+                "diagnosis"
+            ).textContent =
+                "WAITING FOR SCAN...";
+
+
+            document.querySelectorAll(
+                ".bar-fill"
+            ).forEach(bar => {
+
+                bar.style.width =
+                    "0%";
+
+            });
+
+
+            faceStatus.textContent =
+                "● SEARCHING FOR FACE...";
+
+
+            faceStatus.classList.remove(
+                "detected"
+            );
+
+
+            startBtn.disabled =
+                true;
+
+
+            startBtn.textContent =
+                "DETECTING AGAIN...";
+
+
+            terminalText.innerHTML +=
+
+                "<br>> New scan requested." +
+
+                "<br>> Resetting neural analysis..." +
+
+                "<br>> Searching for face...";
+
+        }
+
+    }
+
+);
+
+</script>
+
+</body>
+</html>
