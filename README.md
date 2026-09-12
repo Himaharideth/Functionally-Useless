@@ -81,7 +81,7 @@ For Software:
 
 https://github.com/user-attachments/assets/8c57a85c-a172-412b-b3ec-9094e53e0de9
 
-**
+*This video demonstration showcases the working of the Brain Activity Detector web application from start to finish. It begins by opening the website and enabling webcam access, followed by real-time face detection using MediaPipe. The application then processes the detected facial data and performs the programmed analysis to generate various brain-related metrics. Finally, the results are displayed through an interactive interface, including the brain activity percentage, individual metrics, current thought, and a humorous diagnosis. The video demonstrates the complete user interaction and overall functionality of the web application*
 
 # Additional Demos
 https://functionally-useless.vercel.app/
