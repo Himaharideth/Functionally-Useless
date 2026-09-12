@@ -87,8 +87,8 @@ https://github.com/user-attachments/assets/8c57a85c-a172-412b-b3ec-9094e53e0de9
 https://functionally-useless.vercel.app/
 
 ## Team Contributions
-- Hima HS: idea pitched 
-- Harikrishnan R: 
+- Hima HS: idea pitched and web designed
+- Harikrishnan R: vscode and github handling
   
 
 ---
