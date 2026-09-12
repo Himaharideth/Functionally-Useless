@@ -50,7 +50,9 @@ For Hardware:
 ### Implementation
 For Software:
 # Installation
-[commands]
+github
+vscode
+vercel
 
 # Run
 [commands]
