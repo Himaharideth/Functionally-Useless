@@ -78,8 +78,10 @@ For Software:
 
 ### Project Demo
 # Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+
+https://github.com/user-attachments/assets/8c57a85c-a172-412b-b3ec-9094e53e0de9
+
+**
 
 # Additional Demos
 https://functionally-useless.vercel.app/
