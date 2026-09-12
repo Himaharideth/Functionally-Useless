@@ -63,7 +63,7 @@ For Software:
 
 *initil window that analysis our face*
 
-<img width="1920" height="1020" alt="Screenshot 2026-09-12 062512" src="https://github.com/user-attachments/assets/73b561f6-3a89-4fb7-9724-cc6099d91906" />
+<img width="1920" height="1020" alt="Screenshot 2026-09-12 070611" src="https://github.com/user-attachments/assets/a9a54528-8e6e-452f-9482-abdad1cf11a0" />
 
 *loading screen*
 
